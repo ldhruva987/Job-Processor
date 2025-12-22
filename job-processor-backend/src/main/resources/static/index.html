@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Processor Dashboard</title>
+    <style>
+        :root { --primary: #2563eb; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --bg: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg); color: #1e293b; padding: 2rem; }
+        h1 { margin-bottom: 2rem; font-weight: 700; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .card h3 { margin: 0; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+        .card .value { font-size: 2.25rem; font-weight: 700; margin-top: 0.5rem; }
+
+        #val-pending { color: var(--primary); }
+        #val-running { color: var(--warn); }
+        #val-completed { color: var(--success); }
+        #val-dlq { color: var(--danger); }
+
+        .refresh-status { font-size: 0.875rem; color: #94a3b8; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+<h1>System Observability Dashboard</h1>
+
+<div class="stats-grid">
+    <div class="card"><h3>Pending Jobs</h3><div id="val-pending" class="value">0</div></div>
+    <div class="card"><h3>Running</h3><div id="val-running" class="value">0</div></div>
+    <div class="card"><h3>Completed</h3><div id="val-completed" class="value">0</div></div>
+    <div class="card"><h3>Dead Letter (DLQ)</h3><div id="val-dlq" class="value">0</div></div>
+</div>
+<h2>Recent Job Activity</h2>
+<table style="width:100%; background:white; border-collapse: collapse; border-radius: 8px; overflow: hidden;">
+    <thead>
+    <tr style="background:#e2e8f0; text-align:left;">
+        <th style="padding:10px;">ID</th>
+        <th style="padding:10px;">Tenant</th>
+        <th style="padding:10px;">Status</th>
+        <th style="padding:10px;">Retries</th>
+    </tr>
+    </thead>
+    <tbody id="job-table-body">
+    </tbody>
+</table>
+
+<div class="refresh-status">Auto-refreshing every 2 seconds...</div>
+
+<script>
+    // Implement live updates via polling
+    async function fetchStats() {
+        try {
+            const response = await fetch('/api/jobs/stats');
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const stats = await response.json();
+            document.getElementById('val-pending').innerText = stats.pending || 0;
+            document.getElementById('val-running').innerText = stats.running || 0;
+            document.getElementById('val-completed').innerText = stats.completed || 0;
+            document.getElementById('val-dlq').innerText = stats.dlq || 0;
+        } catch (error) {
+            console.error('Dashboard Error:', error);
+        }
+    }
+
+    async function updateTable() {
+    try {
+        const response = await fetch('/api/jobs/recent');
+        const jobs = await response.json();
+        const tbody = document.getElementById('job-table-body');
+        tbody.innerHTML = jobs.map(job => `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:10px; font-size:12px;">${job.id.substring(0,8)}...</td>
+                <td style="padding:10px;">${job.tenantId}</td>
+                <td style="padding:10px;"><span style="padding:4px 8px; border-radius:4px; font-size:12px; background:${getStatusColor(job.status)}">${job.status}</span></td>
+                <td style="padding:10px;">${job.retryCount}</td>
+            </tr>
+        `).join('');
+    } catch (err) { console.error(err); }
+}
+
+function getStatusColor(status) {
+    if (status === 'DONE') return '#dcfce7';
+    if (status === 'RUNNING') return '#fef9c3';
+    if (status === 'DLQ') return '#fee2e2';
+    return '#f1f5f9';
+}
+
+// Update the table every 2 seconds along with stats
+setInterval(updateTable, 2000);
+updateTable();
+
+    // Start polling
+    setInterval(fetchStats, 2000);
+    fetchStats(); // Initial load
+</script>
+</body>
+</html>

@@ -8,10 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -34,6 +31,16 @@ public class JobController {
         // Save the new job to persistence
         Job savedJob = jobRepository.save(jobRequest);
         return new ResponseEntity<>(savedJob, HttpStatus.CREATED);
+    }
+    // Inside JobController.java
+
+    @GetMapping("/recent")
+    public ResponseEntity<List<Job>> getRecentJobs() {
+
+        return ResponseEntity.ok(jobRepository.findAll(
+                org.springframework.data.domain.PageRequest.of(0, 10,
+                        org.springframework.data.domain.Sort.by("updatedAt").descending())
+        ).getContent());
     }
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getStats() {

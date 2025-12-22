@@ -33,7 +33,11 @@ public class JobWorker {
             log.info("Worker picked up job for tenant: {}", job.getTenantId());
 
             // In a real app, you'd parse job.getPayload() and execute logic here
-            Thread.sleep(2000);
+            Thread.sleep(1000);
+
+            if (Math.random() > 0.1) {
+                throw new RuntimeException("Simulated processing error!");
+            }
             jobService.acknowledgeJob(job);
             log.info("Job successfully completed");
 
