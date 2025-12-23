@@ -32,7 +32,6 @@ public class JobController {
         Job savedJob = jobRepository.save(jobRequest);
         return new ResponseEntity<>(savedJob, HttpStatus.CREATED);
     }
-    // Inside JobController.java
 
     @GetMapping("/recent")
     public ResponseEntity<List<Job>> getRecentJobs() {
